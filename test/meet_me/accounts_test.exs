@@ -6,13 +6,15 @@ defmodule MeetMe.AccountsTest do
   import MeetMe.AccountsFixtures
   alias MeetMe.Accounts.{User, UserToken}
 
+  @update_password "P4$$w0rd!!!!"
+
   describe "get_user_by_email/1" do
     test "does not return the user if the email does not exist" do
       refute Accounts.get_user_by_email("unknown@example.com")
     end
 
     test "returns the user if the email exists" do
-      %{id: id} = user = user_fixture()
+      %{id: id} = user = insert(:user)
       assert %User{id: ^id} = Accounts.get_user_by_email(user.email)
     end
   end
@@ -23,12 +25,12 @@ defmodule MeetMe.AccountsTest do
     end
 
     test "does not return the user if the password is not valid" do
-      user = user_fixture()
+      user = insert(:user)
       refute Accounts.get_user_by_email_and_password(user.email, "invalid")
     end
 
     test "returns the user if the email and password are valid" do
-      %{id: id} = user = user_fixture()
+      %{id: id} = user = insert(:user)
 
       assert %User{id: ^id} =
                Accounts.get_user_by_email_and_password(user.email, valid_user_password())
@@ -43,7 +45,7 @@ defmodule MeetMe.AccountsTest do
     end
 
     test "returns the user with the given id" do
-      %{id: id} = user = user_fixture()
+      %{id: id} = user = insert(:user)
       assert %User{id: ^id} = Accounts.get_user!(user.id)
     end
   end
@@ -62,9 +64,10 @@ defmodule MeetMe.AccountsTest do
       {:error, changeset} = Accounts.register_user(%{email: "not valid", password: "not valid"})
 
       assert %{
-               email: ["must have the @ sign and no spaces"],
-               password: ["should be at least 12 character(s)"]
+               email: ["must have the @ sign and no spaces"]
              } = errors_on(changeset)
+
+      assert "should be at least 12 character(s)" in errors_on(changeset).password
     end
 
     test "validates maximum values for email and password for security" do
@@ -75,7 +78,7 @@ defmodule MeetMe.AccountsTest do
     end
 
     test "validates email uniqueness" do
-      %{email: email} = user_fixture()
+      %{email: email} = insert(:user)
       {:error, changeset} = Accounts.register_user(%{email: email})
       assert "has already been taken" in errors_on(changeset).email
 
@@ -85,9 +88,9 @@ defmodule MeetMe.AccountsTest do
     end
 
     test "registers users with a hashed password" do
-      email = unique_user_email()
-      {:ok, user} = Accounts.register_user(valid_user_attributes(email: email))
-      assert user.email == email
+      params = params_for(:user)
+      {:ok, user} = Accounts.register_user(params)
+      assert user.email == params.email
       assert is_binary(user.hashed_password)
       assert is_nil(user.confirmed_at)
       assert is_nil(user.password)
@@ -126,7 +129,7 @@ defmodule MeetMe.AccountsTest do
 
   describe "apply_user_email/3" do
     setup do
-      %{user: user_fixture()}
+      %{user: insert(:user)}
     end
 
     test "requires email to change", %{user: user} do
@@ -151,7 +154,7 @@ defmodule MeetMe.AccountsTest do
     end
 
     test "validates email uniqueness", %{user: user} do
-      %{email: email} = user_fixture()
+      %{email: email} = insert(:user)
 
       {:error, changeset} =
         Accounts.apply_user_email(user, valid_user_password(), %{email: email})
@@ -176,7 +179,7 @@ defmodule MeetMe.AccountsTest do
 
   describe "deliver_update_email_instructions/3" do
     setup do
-      %{user: user_fixture()}
+      %{user: insert(:user)}
     end
 
     test "sends token through notification", %{user: user} do
@@ -195,7 +198,7 @@ defmodule MeetMe.AccountsTest do
 
   describe "update_user_email/2" do
     setup do
-      user = user_fixture()
+      user = insert(:user)
       email = unique_user_email()
 
       token =
@@ -245,18 +248,18 @@ defmodule MeetMe.AccountsTest do
     test "allows fields to be set" do
       changeset =
         Accounts.change_user_password(%User{}, %{
-          "password" => "new valid password"
+          "password" => "P4ssw0rd!xxxx"
         })
 
       assert changeset.valid?
-      assert get_change(changeset, :password) == "new valid password"
+      assert get_change(changeset, :password) == "P4ssw0rd!xxxx"
       assert is_nil(get_change(changeset, :hashed_password))
     end
   end
 
   describe "update_user_password/3" do
     setup do
-      %{user: user_fixture()}
+      %{user: insert(:user)}
     end
 
     test "validates password", %{user: user} do
@@ -267,9 +270,10 @@ defmodule MeetMe.AccountsTest do
         })
 
       assert %{
-               password: ["should be at least 12 character(s)"],
                password_confirmation: ["does not match password"]
              } = errors_on(changeset)
+
+      assert "should be at least 12 character(s)" in errors_on(changeset).password
     end
 
     test "validates maximum values for password for security", %{user: user} do
@@ -289,13 +293,15 @@ defmodule MeetMe.AccountsTest do
     end
 
     test "updates the password", %{user: user} do
+      user = Repo.reload!(user)
+
       {:ok, user} =
         Accounts.update_user_password(user, valid_user_password(), %{
-          password: "new valid password"
+          password: "P4ssw0rd!xxxx"
         })
 
       assert is_nil(user.password)
-      assert Accounts.get_user_by_email_and_password(user.email, "new valid password")
+      assert Accounts.get_user_by_email_and_password(user.email, "P4ssw0rd!xxxx")
     end
 
     test "deletes all tokens for the given user", %{user: user} do
@@ -303,7 +309,7 @@ defmodule MeetMe.AccountsTest do
 
       {:ok, _} =
         Accounts.update_user_password(user, valid_user_password(), %{
-          password: "new valid password"
+          password: "P4ssw0rd!xxxx"
         })
 
       refute Repo.get_by(UserToken, user_id: user.id)
@@ -312,7 +318,7 @@ defmodule MeetMe.AccountsTest do
 
   describe "generate_user_session_token/1" do
     setup do
-      %{user: user_fixture()}
+      %{user: insert(:user)}
     end
 
     test "generates a token", %{user: user} do
@@ -324,7 +330,7 @@ defmodule MeetMe.AccountsTest do
       assert_raise Ecto.ConstraintError, fn ->
         Repo.insert!(%UserToken{
           token: user_token.token,
-          user_id: user_fixture().id,
+          user_id: insert(:user).id,
           context: "session"
         })
       end
@@ -333,7 +339,7 @@ defmodule MeetMe.AccountsTest do
 
   describe "get_user_by_session_token/1" do
     setup do
-      user = user_fixture()
+      user = insert(:user)
       token = Accounts.generate_user_session_token(user)
       %{user: user, token: token}
     end
@@ -355,7 +361,7 @@ defmodule MeetMe.AccountsTest do
 
   describe "delete_session_token/1" do
     test "deletes the token" do
-      user = user_fixture()
+      user = insert(:user)
       token = Accounts.generate_user_session_token(user)
       assert Accounts.delete_session_token(token) == :ok
       refute Accounts.get_user_by_session_token(token)
@@ -364,7 +370,7 @@ defmodule MeetMe.AccountsTest do
 
   describe "deliver_user_confirmation_instructions/2" do
     setup do
-      %{user: user_fixture()}
+      %{user: insert(:user)}
     end
 
     test "sends token through notification", %{user: user} do
@@ -383,7 +389,7 @@ defmodule MeetMe.AccountsTest do
 
   describe "confirm_user/1" do
     setup do
-      user = user_fixture()
+      user = insert(:user)
 
       token =
         extract_user_token(fn url ->
@@ -417,7 +423,7 @@ defmodule MeetMe.AccountsTest do
 
   describe "deliver_user_reset_password_instructions/2" do
     setup do
-      %{user: user_fixture()}
+      %{user: insert(:user)}
     end
 
     test "sends token through notification", %{user: user} do
@@ -436,7 +442,7 @@ defmodule MeetMe.AccountsTest do
 
   describe "get_user_by_reset_password_token/1" do
     setup do
-      user = user_fixture()
+      user = insert(:user)
 
       token =
         extract_user_token(fn url ->
@@ -465,7 +471,7 @@ defmodule MeetMe.AccountsTest do
 
   describe "reset_user_password/2" do
     setup do
-      %{user: user_fixture()}
+      %{user: insert(:user)}
     end
 
     test "validates password", %{user: user} do
@@ -476,9 +482,10 @@ defmodule MeetMe.AccountsTest do
         })
 
       assert %{
-               password: ["should be at least 12 character(s)"],
                password_confirmation: ["does not match password"]
              } = errors_on(changeset)
+
+      assert "should be at least 12 character(s)" in errors_on(changeset).password
     end
 
     test "validates maximum values for password for security", %{user: user} do
@@ -488,14 +495,15 @@ defmodule MeetMe.AccountsTest do
     end
 
     test "updates the password", %{user: user} do
-      {:ok, updated_user} = Accounts.reset_user_password(user, %{password: "new valid password"})
+      user = Repo.reload!(user)
+      {:ok, updated_user} = Accounts.reset_user_password(user, %{password: @update_password})
       assert is_nil(updated_user.password)
-      assert Accounts.get_user_by_email_and_password(user.email, "new valid password")
+      assert Accounts.get_user_by_email_and_password(user.email, @update_password)
     end
 
     test "deletes all tokens for the given user", %{user: user} do
       _ = Accounts.generate_user_session_token(user)
-      {:ok, _} = Accounts.reset_user_password(user, %{password: "new valid password"})
+      {:ok, _} = Accounts.reset_user_password(user, %{password: @update_password})
       refute Repo.get_by(UserToken, user_id: user.id)
     end
   end

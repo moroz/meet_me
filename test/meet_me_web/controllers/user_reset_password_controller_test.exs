@@ -6,7 +6,7 @@ defmodule MeetMeWeb.UserResetPasswordControllerTest do
   import MeetMe.AccountsFixtures
 
   setup do
-    %{user: user_fixture()}
+    %{user: insert(:user)}
   end
 
   describe "GET /users/reset_password" do

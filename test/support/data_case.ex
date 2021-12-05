@@ -23,6 +23,7 @@ defmodule MeetMe.DataCase do
       import Ecto
       import Ecto.Changeset
       import Ecto.Query
+      import MeetMe.Factory
       import MeetMe.DataCase
     end
   end

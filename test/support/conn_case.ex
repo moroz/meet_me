@@ -23,6 +23,7 @@ defmodule MeetMeWeb.ConnCase do
       import Plug.Conn
       import Phoenix.ConnTest
       import MeetMeWeb.ConnCase
+      import MeetMe.Factory
 
       alias MeetMeWeb.Router.Helpers, as: Routes
 
