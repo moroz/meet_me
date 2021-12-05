@@ -23,7 +23,12 @@ config :meet_me, MeetMeWeb.Endpoint,
   code_reloader: true,
   debug_errors: true,
   secret_key_base: "IuEdPoTl6kut1MUWrZhFbw0hpxG2eZu4mZpJVL3eIs22aZh01H//1JoMnVDd3GxL",
-  watchers: []
+  watchers: [
+    node: [
+      "node_modules/vite/bin/vite.js",
+      cd: Path.expand("../assets", __DIR__)
+    ]
+  ]
 
 # ## SSL Support
 #
