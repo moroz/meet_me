@@ -1,10 +1,8 @@
 defmodule MeetMeWeb.UserSessionControllerTest do
   use MeetMeWeb.ConnCase, async: true
 
-  import MeetMe.AccountsFixtures
-
   setup do
-    %{user: user_fixture()}
+    %{user: insert(:user)}
   end
 
   describe "GET /users/log_in" do

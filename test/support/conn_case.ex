@@ -47,7 +47,7 @@ defmodule MeetMeWeb.ConnCase do
   test context.
   """
   def register_and_log_in_user(%{conn: conn}) do
-    user = MeetMe.AccountsFixtures.user_fixture()
+    user = MeetMe.Factory.insert(:user)
     %{conn: log_in_user(conn, user), user: user}
   end
 

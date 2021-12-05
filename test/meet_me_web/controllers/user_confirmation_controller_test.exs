@@ -6,7 +6,7 @@ defmodule MeetMeWeb.UserConfirmationControllerTest do
   import MeetMe.AccountsFixtures
 
   setup do
-    %{user: user_fixture()}
+    %{user: insert(:user)}
   end
 
   describe "GET /users/confirm" do

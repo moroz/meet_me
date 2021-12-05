@@ -20,6 +20,8 @@ defmodule MeetMeWeb.UserSettingsControllerTest do
     end
   end
 
+  @update_password "P4$$w0rd!!!!"
+
   describe "PUT /users/settings (change password form)" do
     test "updates the user password and resets tokens", %{conn: conn, user: user} do
       new_password_conn =
@@ -27,15 +29,15 @@ defmodule MeetMeWeb.UserSettingsControllerTest do
           "action" => "update_password",
           "current_password" => valid_user_password(),
           "user" => %{
-            "password" => "new valid password",
-            "password_confirmation" => "new valid password"
+            "password" => @update_password,
+            "password_confirmation" => @update_password
           }
         })
 
       assert redirected_to(new_password_conn) == Routes.user_settings_path(conn, :edit)
       assert get_session(new_password_conn, :user_token) != get_session(conn, :user_token)
       assert get_flash(new_password_conn, :info) =~ "Password updated successfully"
-      assert Accounts.get_user_by_email_and_password(user.email, "new valid password")
+      assert Accounts.get_user_by_email_and_password(user.email, @update_password)
     end
 
     test "does not update password on invalid data", %{conn: conn} do

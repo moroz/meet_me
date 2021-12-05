@@ -3,7 +3,6 @@ defmodule MeetMeWeb.UserAuthTest do
 
   alias MeetMe.Accounts
   alias MeetMeWeb.UserAuth
-  import MeetMe.AccountsFixtures
 
   @remember_me_cookie "_meet_me_web_user_remember_me"
 
@@ -13,7 +12,7 @@ defmodule MeetMeWeb.UserAuthTest do
       |> Map.replace!(:secret_key_base, MeetMeWeb.Endpoint.config(:secret_key_base))
       |> init_test_session(%{})
 
-    %{user: user_fixture(), conn: conn}
+    %{user: insert(:user), conn: conn}
   end
 
   describe "log_in_user/3" do
